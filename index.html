@@ -3,17 +3,21 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'" />
-  <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'" />
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; media-src 'self' mediastream:;" />
+  <meta http-equiv="X-Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; media-src 'self' mediastream:;" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Camera Selector</title>
 </head>
 
 <body>
-  <h1>Hello from Electron renderer!</h1>
-  <p>👋</p>
+  <h1>Head Tilt Detector App!</h1>
   <p id="info"></p>
-  <button id="start-camera">Start Camera</button>
+  <div class="camera-controls" style="margin: 10px 0;">
+    <button id="start-camera">Start Camera</button>
+    <button id="stop-camera" disabled>Stop Camera</button>
+  </div>
   <video id="video" width="640" height="480" autoplay></video>
 </body>
 <script src="./renderer.js"></script>
