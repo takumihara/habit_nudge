@@ -3,12 +3,13 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self'; media-src 'self' mediastream:;" />
-  <meta http-equiv="X-Content-Security-Policy"
-    content="default-src 'self'; script-src 'self'; media-src 'self' mediastream:;" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Camera Selector</title>
+  <title>Head Tilt Detector</title>
+  <!-- Load TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.15.0/dist/tf.min.js"></script>
+  <!-- Load Face Landmarks Detection -->
+  <script
+    src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@1.0.5/dist/face-landmarks-detection.js"></script>
 </head>
 
 <body>
@@ -18,7 +19,9 @@
     <button id="start-camera">Start Camera</button>
     <button id="stop-camera" disabled>Stop Camera</button>
   </div>
+  <div id="tilt-info" style="margin: 10px 0; font-size: 18px; font-weight: bold;"></div>
   <video id="video" width="640" height="480" autoplay></video>
+  <canvas id="output" width="640" height="480" style="display: none;"></canvas>
 </body>
 <script src="./renderer.js"></script>
 
