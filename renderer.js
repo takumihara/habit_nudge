@@ -10,6 +10,8 @@ let currentStream = null;
 let detector = null;
 let isDetecting = false;
 
+const MOUTH_OPEN_THRESHOLD = 0.01;
+
 // Load the face landmarks detection model
 async function loadModel() {
   try {
@@ -45,6 +47,30 @@ function calculateHeadTilt(keypoints) {
   return angleDeg;
 }
 
+// Calculate if mouth is open using lip landmarks
+function isMouthOpen(keypoints) {
+  // Upper lip points (center)
+  const upperLip = keypoints[13]; // Upper lip top
+  const lowerLip = keypoints[14]; // Lower lip bottom
+
+  // Calculate vertical distance between lips
+  const lipDistance = Math.abs(upperLip.y - lowerLip.y);
+
+  // Get face height (using nose bridge to chin as reference)
+  const noseBridge = keypoints[168]; // Nose bridge
+  const chin = keypoints[152]; // Chin
+  const faceHeight = Math.abs(chin.y - noseBridge.y);
+
+  // Calculate ratio of lip distance to face height
+  const mouthOpenRatio = lipDistance / faceHeight;
+
+  // Return both the boolean and the ratio for visualization
+  return {
+    isOpen: mouthOpenRatio > MOUTH_OPEN_THRESHOLD, // Adjust this threshold as needed
+    ratio: mouthOpenRatio,
+  };
+}
+
 // Detect faces and calculate head tilt
 async function detectFaces() {
   if (!detector || !currentStream || !isDetecting) return;
@@ -55,15 +81,17 @@ async function detectFaces() {
     if (faces.length > 0) {
       const face = faces[0];
       const tiltAngle = calculateHeadTilt(face.keypoints);
+      const mouthState = isMouthOpen(face.keypoints);
 
-      // Update tilt information
+      // Update tilt and mouth information
       let tiltDirection = "Level";
       if (tiltAngle < -5) tiltDirection = "Tilted Left";
       if (tiltAngle > 5) tiltDirection = "Tilted Right";
 
+      const mouthStatus = mouthState.isOpen ? "Open" : "Closed";
       tiltInfo.innerText = `Head Tilt: ${tiltDirection} (${tiltAngle.toFixed(
         1,
-      )}°)`;
+      )}°) | Mouth: ${mouthStatus}`;
 
       // Clear previous drawing
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -85,6 +113,19 @@ async function detectFaces() {
       ctx.lineTo(rightEye.x, rightEye.y);
       ctx.stroke();
 
+      // Draw mouth points and lines
+      const upperLip = face.keypoints[13];
+      const lowerLip = face.keypoints[14];
+      const noseBridge = face.keypoints[168];
+      const chin = face.keypoints[152];
+
+      // Draw mouth lines
+      ctx.strokeStyle = mouthState.isOpen ? "#FF0000" : "#00FF00";
+      ctx.beginPath();
+      ctx.moveTo(upperLip.x, upperLip.y);
+      ctx.lineTo(lowerLip.x, lowerLip.y);
+      ctx.stroke();
+
       // Draw dots for all facial landmarks
       ctx.fillStyle = "#FF0000";
       face.keypoints.forEach((point) => {
@@ -93,9 +134,18 @@ async function detectFaces() {
         ctx.fill();
       });
 
-      // Draw special points (eyes) larger
+      // Draw special points larger
       ctx.fillStyle = "#00FF00";
+      // Eyes
       [leftEye, rightEye].forEach((point) => {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+
+      // Mouth points
+      ctx.fillStyle = mouthState.isOpen ? "#FF0000" : "#00FF00";
+      [upperLip, lowerLip].forEach((point) => {
         ctx.beginPath();
         ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
         ctx.fill();
