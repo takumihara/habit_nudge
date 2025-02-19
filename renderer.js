@@ -5,10 +5,16 @@ const stopButton = document.getElementById("stop-camera");
 const tiltInfo = document.getElementById("tilt-info");
 const canvas = document.getElementById("output");
 const ctx = canvas.getContext("2d");
+const tiltDetectionToggle = document.getElementById("tilt-detection");
+const mouthDetectionToggle = document.getElementById("mouth-detection");
 
 let currentStream = null;
 let detector = null;
 let isDetecting = false;
+
+// Detection state
+let isTiltDetectionEnabled = true;
+let isMouthDetectionEnabled = true;
 
 const MOUTH_OPEN_THRESHOLD = 0.01;
 
@@ -42,13 +48,13 @@ function createBeep(frequency, duration, type = "sine") {
 function playEventSound(event) {
   switch (event) {
     case "tiltLeft":
-      createBeep(330, 0.1); // Lower frequency
+      if (isTiltDetectionEnabled) createBeep(330, 0.1); // Lower frequency
       break;
     case "tiltRight":
-      createBeep(440, 0.1); // Higher frequency
+      if (isTiltDetectionEnabled) createBeep(440, 0.1); // Higher frequency
       break;
     case "mouthOpen":
-      createBeep(600, 0.05, "square"); // Different sound for mouth
+      if (isMouthDetectionEnabled) createBeep(600, 0.05, "square"); // Different sound for mouth
       break;
   }
 }
@@ -129,21 +135,28 @@ async function detectFaces() {
       if (tiltAngle < -5) tiltDirection = "Tilted Left";
       if (tiltAngle > 5) tiltDirection = "Tilted Right";
 
-      // Play sounds for state changes
-      if (tiltDirection === "Tilted Left") {
-        playEventSound("tiltLeft");
-      } else if (tiltDirection === "Tilted Right") {
-        playEventSound("tiltRight");
+      // Play sounds for state changes only if respective detection is enabled
+      if (isTiltDetectionEnabled) {
+        if (tiltDirection === "Tilted Left") {
+          playEventSound("tiltLeft");
+        } else if (tiltDirection === "Tilted Right") {
+          playEventSound("tiltRight");
+        }
       }
 
-      if (mouthState.isOpen) {
+      if (isMouthDetectionEnabled && mouthState.isOpen) {
         playEventSound("mouthOpen");
       }
 
-      const mouthStatus = mouthState.isOpen ? "Open" : "Closed";
-      tiltInfo.innerText = `Head Tilt: ${tiltDirection} (${tiltAngle.toFixed(
-        1,
-      )}°) | Mouth: ${mouthStatus}`;
+      // Update info text based on enabled features
+      let infoText = [];
+      if (isTiltDetectionEnabled) {
+        infoText.push(`Head Tilt: ${tiltDirection} (${tiltAngle.toFixed(1)}°)`);
+      }
+      if (isMouthDetectionEnabled) {
+        infoText.push(`Mouth: ${mouthState.isOpen ? "Open" : "Closed"}`);
+      }
+      tiltInfo.innerText = infoText.join(" | ") || "All detections disabled";
 
       // Clear previous drawing
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -155,51 +168,52 @@ async function detectFaces() {
       ctx.strokeStyle = "#00FF00";
       ctx.lineWidth = 2;
 
-      // Draw eyes
-      const leftEye = face.keypoints[159];
-      const rightEye = face.keypoints[386];
+      // Draw eyes and tilt line only if tilt detection is enabled
+      if (isTiltDetectionEnabled) {
+        const leftEye = face.keypoints[159];
+        const rightEye = face.keypoints[386];
 
-      // Draw line between eyes to show tilt
-      ctx.beginPath();
-      ctx.moveTo(leftEye.x, leftEye.y);
-      ctx.lineTo(rightEye.x, rightEye.y);
-      ctx.stroke();
+        // Draw line between eyes to show tilt
+        ctx.beginPath();
+        ctx.moveTo(leftEye.x, leftEye.y);
+        ctx.lineTo(rightEye.x, rightEye.y);
+        ctx.stroke();
 
-      // Draw mouth points and lines
-      const upperLip = face.keypoints[13];
-      const lowerLip = face.keypoints[14];
-      const noseBridge = face.keypoints[168];
-      const chin = face.keypoints[152];
+        // Draw eye points larger
+        ctx.fillStyle = "#00FF00";
+        [leftEye, rightEye].forEach((point) => {
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
+          ctx.fill();
+        });
+      }
 
-      // Draw mouth lines
-      ctx.strokeStyle = mouthState.isOpen ? "#FF0000" : "#00FF00";
-      ctx.beginPath();
-      ctx.moveTo(upperLip.x, upperLip.y);
-      ctx.lineTo(lowerLip.x, lowerLip.y);
-      ctx.stroke();
+      // Draw mouth points and lines only if mouth detection is enabled
+      if (isMouthDetectionEnabled) {
+        const upperLip = face.keypoints[13];
+        const lowerLip = face.keypoints[14];
+
+        // Draw mouth lines
+        ctx.strokeStyle = mouthState.isOpen ? "#FF0000" : "#00FF00";
+        ctx.beginPath();
+        ctx.moveTo(upperLip.x, upperLip.y);
+        ctx.lineTo(lowerLip.x, lowerLip.y);
+        ctx.stroke();
+
+        // Draw mouth points
+        ctx.fillStyle = mouthState.isOpen ? "#FF0000" : "#00FF00";
+        [upperLip, lowerLip].forEach((point) => {
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
+          ctx.fill();
+        });
+      }
 
       // Draw dots for all facial landmarks
       ctx.fillStyle = "#FF0000";
       face.keypoints.forEach((point) => {
         ctx.beginPath();
         ctx.arc(point.x, point.y, 2, 0, 2 * Math.PI);
-        ctx.fill();
-      });
-
-      // Draw special points larger
-      ctx.fillStyle = "#00FF00";
-      // Eyes
-      [leftEye, rightEye].forEach((point) => {
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
-        ctx.fill();
-      });
-
-      // Mouth points
-      ctx.fillStyle = mouthState.isOpen ? "#FF0000" : "#00FF00";
-      [upperLip, lowerLip].forEach((point) => {
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
         ctx.fill();
       });
 
@@ -324,6 +338,15 @@ function stopCamera() {
 async function initialize() {
   await loadModel();
   await createCameraSelector();
+
+  // Add event listeners for toggles
+  tiltDetectionToggle.addEventListener("change", (e) => {
+    isTiltDetectionEnabled = e.target.checked;
+  });
+
+  mouthDetectionToggle.addEventListener("change", (e) => {
+    isMouthDetectionEnabled = e.target.checked;
+  });
 }
 
 // Create camera selector when page loads
