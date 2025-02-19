@@ -65,22 +65,51 @@ async function detectFaces() {
         1,
       )}°)`;
 
-      // Visualize face landmarks on canvas
+      // Clear previous drawing
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
 
-      // Draw facial landmarks
-      ctx.fillStyle = "#00FF00";
+      // Make canvas transparent
+      ctx.globalAlpha = 0.6;
+
+      // Draw facial landmarks with connecting lines
+      ctx.strokeStyle = "#00FF00";
+      ctx.lineWidth = 2;
+
+      // Draw eyes
+      const leftEye = face.keypoints[159];
+      const rightEye = face.keypoints[386];
+
+      // Draw line between eyes to show tilt
+      ctx.beginPath();
+      ctx.moveTo(leftEye.x, leftEye.y);
+      ctx.lineTo(rightEye.x, rightEye.y);
+      ctx.stroke();
+
+      // Draw dots for all facial landmarks
+      ctx.fillStyle = "#FF0000";
       face.keypoints.forEach((point) => {
         ctx.beginPath();
         ctx.arc(point.x, point.y, 2, 0, 2 * Math.PI);
         ctx.fill();
       });
+
+      // Draw special points (eyes) larger
+      ctx.fillStyle = "#00FF00";
+      [leftEye, rightEye].forEach((point) => {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 4, 0, 2 * Math.PI);
+        ctx.fill();
+      });
+
+      // Reset transparency
+      ctx.globalAlpha = 1.0;
     } else {
       tiltInfo.innerText = "No face detected";
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
   } catch (error) {
     console.error("Error in face detection:", error);
+    tiltInfo.innerText = "Error in face detection";
   }
 
   requestAnimationFrame(detectFaces);
