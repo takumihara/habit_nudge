@@ -12,6 +12,47 @@ let isDetecting = false;
 
 const MOUTH_OPEN_THRESHOLD = 0.01;
 
+// Create audio context and sounds
+const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+// Function to create a beep sound
+function createBeep(frequency, duration, type = "sine") {
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+
+  oscillator.type = type;
+  oscillator.frequency.value = frequency;
+
+  gainNode.gain.value = 0.1; // Lower volume
+
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+
+  oscillator.start();
+
+  // Fade out to avoid clicks
+  gainNode.gain.exponentialRampToValueAtTime(
+    0.001,
+    audioContext.currentTime + duration,
+  );
+  oscillator.stop(audioContext.currentTime + duration);
+}
+
+// Function to play different sounds for different events
+function playEventSound(event) {
+  switch (event) {
+    case "tiltLeft":
+      createBeep(330, 0.1); // Lower frequency
+      break;
+    case "tiltRight":
+      createBeep(440, 0.1); // Higher frequency
+      break;
+    case "mouthOpen":
+      createBeep(600, 0.05, "square"); // Different sound for mouth
+      break;
+  }
+}
+
 // Load the face landmarks detection model
 async function loadModel() {
   try {
@@ -87,6 +128,17 @@ async function detectFaces() {
       let tiltDirection = "Level";
       if (tiltAngle < -5) tiltDirection = "Tilted Left";
       if (tiltAngle > 5) tiltDirection = "Tilted Right";
+
+      // Play sounds for state changes
+      if (tiltDirection === "Tilted Left") {
+        playEventSound("tiltLeft");
+      } else if (tiltDirection === "Tilted Right") {
+        playEventSound("tiltRight");
+      }
+
+      if (mouthState.isOpen) {
+        playEventSound("mouthOpen");
+      }
 
       const mouthStatus = mouthState.isOpen ? "Open" : "Closed";
       tiltInfo.innerText = `Head Tilt: ${tiltDirection} (${tiltAngle.toFixed(
