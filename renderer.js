@@ -87,19 +87,53 @@ async function loadModel() {
   }
 }
 
-// Calculate head tilt angle from facial landmarks
-function calculateHeadTilt(keypoints) {
-  // Get the eye positions (using more stable points)
-  const leftEye = keypoints[159]; // Left eye outer corner
-  const rightEye = keypoints[386]; // Right eye outer corner
+/**
+ * （修正）Yaw, Pitch, Roll を計算する関数を新規実装
+ *  - keypoints: detector.estimateFaces() で得られる landmarks 配列
+ */
+function calculateHeadPose(keypoints) {
+  // MediaPipe FaceMesh のインデックス例
+  const NOSE_BRIDGE = 168; // 鼻筋あたり
+  const NOSE_TIP = 4; // 鼻先
+  const LEFT_EYE = 159; // 左目の外端
+  const RIGHT_EYE = 386; // 右目の外端
 
-  // Calculate angle
-  const deltaY = rightEye.y - leftEye.y;
-  const deltaX = rightEye.x - leftEye.x;
-  const angleRad = Math.atan2(deltaY, deltaX);
-  const angleDeg = angleRad * (180 / Math.PI);
+  const noseBridge = keypoints[NOSE_BRIDGE];
+  const noseTip = keypoints[NOSE_TIP];
+  const leftEye = keypoints[LEFT_EYE];
+  const rightEye = keypoints[RIGHT_EYE];
 
-  return angleDeg;
+  // --- Yaw計算 (left-right) ---
+  // ここでは左右目のベクトル差から推定
+  const eyeVector = {
+    x: rightEye.x - leftEye.x,
+    y: rightEye.y - leftEye.y,
+    z: rightEye.z - leftEye.z,
+  };
+  // XZ平面に投影してatan2(Z, X)
+  const yaw = Math.atan2(eyeVector.z, eyeVector.x) * (180 / Math.PI);
+
+  // --- Pitch計算 (up-down) ---
+  // 鼻筋～鼻先のベクトル
+  const noseVector = {
+    x: noseTip.x - noseBridge.x,
+    y: noseTip.y - noseBridge.y,
+    z: noseTip.z - noseBridge.z,
+  };
+  // YZ平面に投影して計算
+  // （MediaPipe座標ではzが奥向きに負になるため符号調整を行う場合あり）
+  const pitch = Math.atan2(-noseVector.y, -noseVector.z) * (180 / Math.PI);
+
+  // --- Roll計算 (頭の傾き) ---
+  // 目のラインのy成分 vs (x,z)成分で計算
+  const roll =
+    Math.atan2(
+      eyeVector.y,
+      Math.sqrt(eyeVector.x * eyeVector.x + eyeVector.z * eyeVector.z),
+    ) *
+    (180 / Math.PI);
+
+  return { yaw, pitch, roll };
 }
 
 // Calculate if mouth is open using lip landmarks
@@ -121,7 +155,7 @@ function isMouthOpen(keypoints) {
 
   // Return both the boolean and the ratio for visualization
   return {
-    isOpen: mouthOpenRatio > MOUTH_OPEN_THRESHOLD, // Adjust this threshold as needed
+    isOpen: mouthOpenRatio > MOUTH_OPEN_THRESHOLD,
     ratio: mouthOpenRatio,
   };
 }
@@ -135,13 +169,17 @@ async function detectFaces() {
 
     if (faces.length > 0) {
       const face = faces[0];
-      const tiltAngle = calculateHeadTilt(face.keypoints);
+      // （修正）Yaw, Pitch, Roll を取得
+      const { yaw, pitch, roll } = calculateHeadPose(face.keypoints);
+
+      // Mouth open check
       const mouthState = isMouthOpen(face.keypoints);
 
       // Update tilt and mouth information
       let tiltDirection = "Level";
-      if (tiltAngle < -5) tiltDirection = "Tilted Left";
-      if (tiltAngle > 5) tiltDirection = "Tilted Right";
+      // 例: rollがマイナスなら左に傾いている、プラスなら右に傾いている
+      if (roll < -5) tiltDirection = "Tilted Left";
+      if (roll > 5) tiltDirection = "Tilted Right";
 
       // Track consecutive frames for tilt
       if (tiltDirection === "Tilted Left") {
@@ -155,25 +193,24 @@ async function detectFaces() {
         consecutiveRightTiltFrames = 0;
       }
 
-      // Track consecutive frames for mouth open
       if (mouthState.isOpen) {
         consecutiveMouthOpenFrames++;
       } else {
         consecutiveMouthOpenFrames = 0;
       }
 
-      // Play sounds for state changes only if respective detection is enabled and threshold is met
+      // Play sounds for tilt / mouth open
       if (isTiltDetectionEnabled) {
         if (
           tiltDirection === "Tilted Left" &&
           consecutiveLeftTiltFrames >= CONSECUTIVE_FRAMES_THRESHOLD &&
-          consecutiveLeftTiltFrames % 5 === 0 // Trigger every 5 frames to avoid too frequent alerts
+          consecutiveLeftTiltFrames % 5 === 0
         ) {
           playEventSound("tiltLeft");
         } else if (
           tiltDirection === "Tilted Right" &&
           consecutiveRightTiltFrames >= CONSECUTIVE_FRAMES_THRESHOLD &&
-          consecutiveRightTiltFrames % 5 === 0 // Trigger every 5 frames to avoid too frequent alerts
+          consecutiveRightTiltFrames % 5 === 0
         ) {
           playEventSound("tiltRight");
         }
@@ -182,7 +219,7 @@ async function detectFaces() {
       if (
         isMouthDetectionEnabled &&
         consecutiveMouthOpenFrames >= CONSECUTIVE_FRAMES_THRESHOLD &&
-        consecutiveMouthOpenFrames % 5 === 0 // Trigger every 5 frames to avoid too frequent alerts
+        consecutiveMouthOpenFrames % 5 === 0
       ) {
         playEventSound("mouthOpen");
       }
@@ -200,10 +237,15 @@ async function detectFaces() {
             : "";
 
         infoText.push(
-          `Head Tilt Detection:\n` +
-            `├─ Current State: <span class="status-value">${tiltDirection}</span> (${tiltAngle.toFixed(
+          `Head Tilt (Roll) Detection:\n` +
+            `├─ Current State: <span class="status-value">${tiltDirection}</span> (roll: ${roll.toFixed(
               1,
             )}°)\n` +
+            `├─ Yaw: <span class="status-value">${yaw.toFixed(
+              1,
+            )}</span>°, Pitch: <span class="status-value">${pitch.toFixed(
+              1,
+            )}</span>°\n` +
             `├─ Left Tilt: <span class="status-value">${consecutiveLeftTiltFrames}</span>/<span class="threshold-value">${CONSECUTIVE_FRAMES_THRESHOLD}</span> frames ${leftAlertStatus}\n` +
             `└─ Right Tilt: <span class="status-value">${consecutiveRightTiltFrames}</span>/<span class="threshold-value">${CONSECUTIVE_FRAMES_THRESHOLD}</span> frames ${rightAlertStatus}`,
         );
@@ -236,7 +278,7 @@ async function detectFaces() {
       // Clear previous drawing
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Make canvas transparent
+      // Make canvas semi-transparent
       ctx.globalAlpha = 0.6;
 
       // Draw eyes and tilt line only if tilt detection is enabled
@@ -244,13 +286,11 @@ async function detectFaces() {
         const leftEye = face.keypoints[159];
         const rightEye = face.keypoints[386];
 
-        // Draw line between eyes to show tilt
         ctx.beginPath();
         ctx.moveTo(leftEye.x, leftEye.y);
         ctx.lineTo(rightEye.x, rightEye.y);
         ctx.stroke();
 
-        // Draw eye points larger
         ctx.fillStyle = "#00FF00";
         [leftEye, rightEye].forEach((point) => {
           ctx.beginPath();
@@ -259,19 +299,17 @@ async function detectFaces() {
         });
       }
 
-      // Draw mouth points and lines only if mouth detection is enabled
+      // Draw mouth
       if (isMouthDetectionEnabled) {
         const upperLip = face.keypoints[13];
         const lowerLip = face.keypoints[14];
 
-        // Draw mouth lines
         ctx.strokeStyle = mouthState.isOpen ? "#FF0000" : "#00FF00";
         ctx.beginPath();
         ctx.moveTo(upperLip.x, upperLip.y);
         ctx.lineTo(lowerLip.x, lowerLip.y);
         ctx.stroke();
 
-        // Draw mouth points
         ctx.fillStyle = mouthState.isOpen ? "#FF0000" : "#00FF00";
         [upperLip, lowerLip].forEach((point) => {
           ctx.beginPath();
