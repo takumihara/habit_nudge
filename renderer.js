@@ -16,7 +16,7 @@ let isDetecting = false;
 let isTiltDetectionEnabled = true;
 let isMouthDetectionEnabled = true;
 
-const MOUTH_OPEN_THRESHOLD = 0.01;
+const MOUTH_OPEN_THRESHOLD = 0.02;
 
 // Create audio context and sounds
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -154,7 +154,13 @@ async function detectFaces() {
         infoText.push(`Head Tilt: ${tiltDirection} (${tiltAngle.toFixed(1)}°)`);
       }
       if (isMouthDetectionEnabled) {
-        infoText.push(`Mouth: ${mouthState.isOpen ? "Open" : "Closed"}`);
+        infoText.push(
+          `Mouth: ${
+            mouthState.isOpen ? "Open" : "Closed"
+          } (Ratio: ${mouthState.ratio.toFixed(
+            3,
+          )}, Threshold: ${MOUTH_OPEN_THRESHOLD})`,
+        );
       }
       tiltInfo.innerText = infoText.join(" | ") || "All detections disabled";
 
