@@ -88,44 +88,44 @@ async function loadModel() {
 }
 
 /**
- * （修正）Yaw, Pitch, Roll を計算する関数を新規実装
- *  - keypoints: detector.estimateFaces() で得られる landmarks 配列
+ * (Updated) Implementation of a new function to calculate Yaw, Pitch, Roll
+ *  - keypoints: landmarks array obtained from detector.estimateFaces()
  */
 function calculateHeadPose(keypoints) {
-  // MediaPipe FaceMesh のインデックス例
-  const NOSE_BRIDGE = 168; // 鼻筋あたり
-  const NOSE_TIP = 4; // 鼻先
-  const LEFT_EYE = 159; // 左目の外端
-  const RIGHT_EYE = 386; // 右目の外端
+  // MediaPipe FaceMesh index examples
+  const NOSE_BRIDGE = 168; // Around the bridge of the nose
+  const NOSE_TIP = 4; // Tip of the nose
+  const LEFT_EYE = 159; // Outer corner of the left eye
+  const RIGHT_EYE = 386; // Outer corner of the right eye
 
   const noseBridge = keypoints[NOSE_BRIDGE];
   const noseTip = keypoints[NOSE_TIP];
   const leftEye = keypoints[LEFT_EYE];
   const rightEye = keypoints[RIGHT_EYE];
 
-  // --- Yaw計算 (left-right) ---
-  // ここでは左右目のベクトル差から推定
+  // --- Yaw calculation (left-right) ---
+  // Estimating from the vector difference between left and right eyes
   const eyeVector = {
     x: rightEye.x - leftEye.x,
     y: rightEye.y - leftEye.y,
     z: rightEye.z - leftEye.z,
   };
-  // XZ平面に投影してatan2(Z, X)
+  // Project onto XZ plane and calculate atan2(Z, X)
   const yaw = Math.atan2(eyeVector.z, eyeVector.x) * (180 / Math.PI);
 
-  // --- Pitch計算 (up-down) ---
-  // 鼻筋～鼻先のベクトル
+  // --- Pitch calculation (up-down) ---
+  // Vector from nose bridge to nose tip
   const noseVector = {
     x: noseTip.x - noseBridge.x,
     y: noseTip.y - noseBridge.y,
     z: noseTip.z - noseBridge.z,
   };
-  // YZ平面に投影して計算
-  // （MediaPipe座標ではzが奥向きに負になるため符号調整を行う場合あり）
+  // Project onto YZ plane for calculation
+  // (Note: In MediaPipe coordinates, Z is negative towards the back, may need sign adjustment)
   const pitch = Math.atan2(-noseVector.y, -noseVector.z) * (180 / Math.PI);
 
-  // --- Roll計算 (頭の傾き) ---
-  // 目のラインのy成分 vs (x,z)成分で計算
+  // --- Roll calculation (head tilt) ---
+  // Calculating from the y component of the eye line vs (x,z) components
   const roll =
     Math.atan2(
       eyeVector.y,
