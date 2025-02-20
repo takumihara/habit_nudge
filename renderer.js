@@ -362,6 +362,10 @@ async function startCamera() {
     currentStream = await navigator.mediaDevices.getUserMedia(constraints);
     videoElement.srcObject = currentStream;
 
+    // Mirror the video and canvas
+    videoElement.style.transform = "scaleX(-1)";
+    canvas.style.transform = "scaleX(-1)";
+
     // Update button states
     startButton.disabled = true;
     stopButton.disabled = false;
@@ -395,6 +399,10 @@ function stopCamera() {
     videoElement.srcObject = null;
     tiltInfo.innerText = "";
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Reset mirror effect
+    videoElement.style.transform = "";
+    canvas.style.transform = "";
 
     // Update button states
     startButton.disabled = false;
