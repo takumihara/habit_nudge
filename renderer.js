@@ -307,6 +307,13 @@ async function startCamera() {
     // After getting camera permissions, update labels if they were empty
     await updateCameraLabels();
 
+    // Wait for the video to be loaded before starting face detection
+    await new Promise((resolve) => {
+      videoElement.onloadeddata = () => {
+        resolve();
+      };
+    });
+
     // Start face detection
     isDetecting = true;
     detectFaces();
