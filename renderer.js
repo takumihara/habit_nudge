@@ -167,13 +167,13 @@ async function detectFaces() {
         if (
           tiltDirection === "Tilted Left" &&
           consecutiveLeftTiltFrames >= CONSECUTIVE_FRAMES_THRESHOLD &&
-          consecutiveLeftTiltFrames % 10 === 0 // Trigger every 10 frames to avoid too frequent alerts
+          consecutiveLeftTiltFrames % 5 === 0 // Trigger every 5 frames to avoid too frequent alerts
         ) {
           playEventSound("tiltLeft");
         } else if (
           tiltDirection === "Tilted Right" &&
           consecutiveRightTiltFrames >= CONSECUTIVE_FRAMES_THRESHOLD &&
-          consecutiveRightTiltFrames % 10 === 0 // Trigger every 10 frames to avoid too frequent alerts
+          consecutiveRightTiltFrames % 5 === 0 // Trigger every 5 frames to avoid too frequent alerts
         ) {
           playEventSound("tiltRight");
         }
@@ -182,7 +182,7 @@ async function detectFaces() {
       if (
         isMouthDetectionEnabled &&
         consecutiveMouthOpenFrames >= CONSECUTIVE_FRAMES_THRESHOLD &&
-        consecutiveMouthOpenFrames % 10 === 0 // Trigger every 10 frames to avoid too frequent alerts
+        consecutiveMouthOpenFrames % 5 === 0 // Trigger every 5 frames to avoid too frequent alerts
       ) {
         playEventSound("mouthOpen");
       }
