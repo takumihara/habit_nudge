@@ -16,7 +16,15 @@ let isDetecting = false;
 let isTiltDetectionEnabled = true;
 let isMouthDetectionEnabled = true;
 
-const MOUTH_OPEN_THRESHOLD = 0.02;
+const MOUTH_OPEN_THRESHOLD = 0.01;
+const CONSECUTIVE_FRAMES_THRESHOLD = 5; // Number of consecutive frames needed to trigger alert
+
+// State tracking for consecutive frames
+let consecutiveLeftTiltFrames = 0;
+let consecutiveRightTiltFrames = 0;
+let consecutiveMouthOpenFrames = 0;
+let lastTiltDirection = "Level";
+let lastMouthState = false;
 
 // Create audio context and sounds
 const audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -135,34 +143,85 @@ async function detectFaces() {
       if (tiltAngle < -5) tiltDirection = "Tilted Left";
       if (tiltAngle > 5) tiltDirection = "Tilted Right";
 
-      // Play sounds for state changes only if respective detection is enabled
+      // Track consecutive frames for tilt
+      if (tiltDirection === "Tilted Left") {
+        consecutiveLeftTiltFrames++;
+        consecutiveRightTiltFrames = 0;
+      } else if (tiltDirection === "Tilted Right") {
+        consecutiveRightTiltFrames++;
+        consecutiveLeftTiltFrames = 0;
+      } else {
+        consecutiveLeftTiltFrames = 0;
+        consecutiveRightTiltFrames = 0;
+      }
+
+      // Track consecutive frames for mouth open
+      if (mouthState.isOpen) {
+        consecutiveMouthOpenFrames++;
+      } else {
+        consecutiveMouthOpenFrames = 0;
+      }
+
+      // Play sounds for state changes only if respective detection is enabled and threshold is met
       if (isTiltDetectionEnabled) {
-        if (tiltDirection === "Tilted Left") {
+        if (
+          tiltDirection === "Tilted Left" &&
+          consecutiveLeftTiltFrames >= CONSECUTIVE_FRAMES_THRESHOLD &&
+          consecutiveLeftTiltFrames % 10 === 0 // Trigger every 10 frames to avoid too frequent alerts
+        ) {
           playEventSound("tiltLeft");
-        } else if (tiltDirection === "Tilted Right") {
+        } else if (
+          tiltDirection === "Tilted Right" &&
+          consecutiveRightTiltFrames >= CONSECUTIVE_FRAMES_THRESHOLD &&
+          consecutiveRightTiltFrames % 10 === 0 // Trigger every 10 frames to avoid too frequent alerts
+        ) {
           playEventSound("tiltRight");
         }
       }
 
-      if (isMouthDetectionEnabled && mouthState.isOpen) {
+      if (
+        isMouthDetectionEnabled &&
+        consecutiveMouthOpenFrames >= CONSECUTIVE_FRAMES_THRESHOLD &&
+        consecutiveMouthOpenFrames % 10 === 0 // Trigger every 10 frames to avoid too frequent alerts
+      ) {
         playEventSound("mouthOpen");
       }
 
-      // Update info text based on enabled features
+      // Update info text based on enabled features with alert status
       let infoText = [];
       if (isTiltDetectionEnabled) {
-        infoText.push(`Head Tilt: ${tiltDirection} (${tiltAngle.toFixed(1)}°)`);
+        const leftAlertStatus =
+          consecutiveLeftTiltFrames >= CONSECUTIVE_FRAMES_THRESHOLD
+            ? " 🚨 ALERT!"
+            : "";
+        const rightAlertStatus =
+          consecutiveRightTiltFrames >= CONSECUTIVE_FRAMES_THRESHOLD
+            ? " 🚨 ALERT!"
+            : "";
+        infoText.push(
+          `Head Tilt: ${tiltDirection} (${tiltAngle.toFixed(
+            1,
+          )}°) [Left: ${consecutiveLeftTiltFrames}/${CONSECUTIVE_FRAMES_THRESHOLD}${leftAlertStatus}, Right: ${consecutiveRightTiltFrames}/${CONSECUTIVE_FRAMES_THRESHOLD}${rightAlertStatus}]`,
+        );
       }
       if (isMouthDetectionEnabled) {
+        const mouthAlertStatus =
+          consecutiveMouthOpenFrames >= CONSECUTIVE_FRAMES_THRESHOLD
+            ? " 🚨 ALERT!"
+            : "";
         infoText.push(
           `Mouth: ${
             mouthState.isOpen ? "Open" : "Closed"
           } (Ratio: ${mouthState.ratio.toFixed(
             3,
-          )}, Threshold: ${MOUTH_OPEN_THRESHOLD})`,
+          )}, Threshold: ${MOUTH_OPEN_THRESHOLD}) [Frames: ${consecutiveMouthOpenFrames}/${CONSECUTIVE_FRAMES_THRESHOLD}${mouthAlertStatus}]`,
         );
       }
       tiltInfo.innerText = infoText.join(" | ") || "All detections disabled";
+
+      // Save current states
+      lastTiltDirection = tiltDirection;
+      lastMouthState = mouthState.isOpen;
 
       // Clear previous drawing
       ctx.clearRect(0, 0, canvas.width, canvas.height);
