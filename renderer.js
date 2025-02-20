@@ -239,10 +239,6 @@ async function detectFaces() {
       // Make canvas transparent
       ctx.globalAlpha = 0.6;
 
-      // Draw facial landmarks with connecting lines
-      ctx.strokeStyle = "#00FF00";
-      ctx.lineWidth = 2;
-
       // Draw eyes and tilt line only if tilt detection is enabled
       if (isTiltDetectionEnabled) {
         const leftEye = face.keypoints[159];
@@ -283,14 +279,6 @@ async function detectFaces() {
           ctx.fill();
         });
       }
-
-      // Draw dots for all facial landmarks
-      ctx.fillStyle = "#FF0000";
-      face.keypoints.forEach((point) => {
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, 2, 0, 2 * Math.PI);
-        ctx.fill();
-      });
 
       // Reset transparency
       ctx.globalAlpha = 1.0;
