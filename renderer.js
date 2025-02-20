@@ -192,32 +192,42 @@ async function detectFaces() {
       if (isTiltDetectionEnabled) {
         const leftAlertStatus =
           consecutiveLeftTiltFrames >= CONSECUTIVE_FRAMES_THRESHOLD
-            ? " 🚨 ALERT!"
+            ? '<span class="alert-text">🚨 ALERT!</span>'
             : "";
         const rightAlertStatus =
           consecutiveRightTiltFrames >= CONSECUTIVE_FRAMES_THRESHOLD
-            ? " 🚨 ALERT!"
+            ? '<span class="alert-text">🚨 ALERT!</span>'
             : "";
+
         infoText.push(
-          `Head Tilt: ${tiltDirection} (${tiltAngle.toFixed(
-            1,
-          )}°) [Left: ${consecutiveLeftTiltFrames}/${CONSECUTIVE_FRAMES_THRESHOLD}${leftAlertStatus}, Right: ${consecutiveRightTiltFrames}/${CONSECUTIVE_FRAMES_THRESHOLD}${rightAlertStatus}]`,
+          `Head Tilt Detection:\n` +
+            `├─ Current State: <span class="status-value">${tiltDirection}</span> (${tiltAngle.toFixed(
+              1,
+            )}°)\n` +
+            `├─ Left Tilt: <span class="status-value">${consecutiveLeftTiltFrames}</span>/<span class="threshold-value">${CONSECUTIVE_FRAMES_THRESHOLD}</span> frames ${leftAlertStatus}\n` +
+            `└─ Right Tilt: <span class="status-value">${consecutiveRightTiltFrames}</span>/<span class="threshold-value">${CONSECUTIVE_FRAMES_THRESHOLD}</span> frames ${rightAlertStatus}`,
         );
       }
+
       if (isMouthDetectionEnabled) {
         const mouthAlertStatus =
           consecutiveMouthOpenFrames >= CONSECUTIVE_FRAMES_THRESHOLD
-            ? " 🚨 ALERT!"
+            ? '<span class="alert-text">🚨 ALERT!</span>'
             : "";
+
         infoText.push(
-          `Mouth: ${
-            mouthState.isOpen ? "Open" : "Closed"
-          } (Ratio: ${mouthState.ratio.toFixed(
-            3,
-          )}, Threshold: ${MOUTH_OPEN_THRESHOLD}) [Frames: ${consecutiveMouthOpenFrames}/${CONSECUTIVE_FRAMES_THRESHOLD}${mouthAlertStatus}]`,
+          `Mouth Detection:\n` +
+            `├─ Current State: <span class="status-value">${
+              mouthState.isOpen ? "Open" : "Closed"
+            }</span>\n` +
+            `├─ Open Ratio: <span class="status-value">${mouthState.ratio.toFixed(
+              3,
+            )}</span> (Threshold: <span class="threshold-value">${MOUTH_OPEN_THRESHOLD}</span>)\n` +
+            `└─ Frames: <span class="status-value">${consecutiveMouthOpenFrames}</span>/<span class="threshold-value">${CONSECUTIVE_FRAMES_THRESHOLD}</span> ${mouthAlertStatus}`,
         );
       }
-      tiltInfo.innerText = infoText.join(" | ") || "All detections disabled";
+
+      tiltInfo.innerHTML = infoText.join("\n\n") || "All detections disabled";
 
       // Save current states
       lastTiltDirection = tiltDirection;
