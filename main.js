@@ -18,6 +18,9 @@ const checkCameraPermission = async () => {
 };
 
 const createWindow = () => {
+  // Set up macOS-specific settings
+  const isMac = process.platform === "darwin";
+
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -27,6 +30,13 @@ const createWindow = () => {
       contextIsolation: false,
       webSecurity: true,
     },
+    // macOS specific settings
+    titleBarStyle: isMac ? "hiddenInset" : "default", // Gives a more native look on macOS
+    trafficLightPosition: { x: 20, y: 20 }, // Position the traffic lights properly
+    vibrancy: isMac ? "under-window" : null, // Add vibrancy effect on macOS
+    visualEffectState: isMac ? "active" : null, // Ensure visual effects are active
+    backgroundColor: isMac ? "#00ffffff" : "#fff", // Transparent background for vibrancy
+    roundedCorners: isMac, // Use native rounded corners on macOS
   });
 
   // Open the DevTools only in development mode
