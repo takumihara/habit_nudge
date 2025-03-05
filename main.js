@@ -13,8 +13,10 @@ const createWindow = () => {
     },
   });
 
-  // Open the DevTools by default
+  if (!app.isPackaged) {
   win.webContents.openDevTools();
+    console.log("Development mode: DevTools opened");
+  }
 
   // Set Content-Security-Policy header
   win.webContents.session.webRequest.onHeadersReceived((details, callback) => {
