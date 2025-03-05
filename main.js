@@ -1,5 +1,21 @@
-const { app, BrowserWindow } = require("electron/main");
+const { app, BrowserWindow, systemPreferences } = require("electron/main");
 const path = require("node:path");
+
+// Check camera permission on macOS
+const checkCameraPermission = async () => {
+  if (process.platform === "darwin") {
+    try {
+      // Request camera permission on macOS
+      const status = await systemPreferences.askForMediaAccess("camera");
+      console.log("Camera permission status:", status);
+      return status;
+    } catch (error) {
+      console.error("Error requesting camera permission:", error);
+      return false;
+    }
+  }
+  return true; // Not macOS, so no need to check
+};
 
 const createWindow = () => {
   const win = new BrowserWindow({
@@ -13,8 +29,9 @@ const createWindow = () => {
     },
   });
 
+  // Open the DevTools only in development mode
   if (!app.isPackaged) {
-  win.webContents.openDevTools();
+    win.webContents.openDevTools();
     console.log("Development mode: DevTools opened");
   }
 
@@ -36,7 +53,10 @@ const createWindow = () => {
   win.loadFile("index.html");
 };
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  // Request camera permission first
+  await checkCameraPermission();
+
   createWindow();
 
   app.on("activate", () => {

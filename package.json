@@ -28,7 +28,15 @@
         "dmg",
         "zip"
       ],
-      "icon": "icon.png"
+      "icon": "icon.png",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "extendInfo": {
+        "NSCameraUsageDescription": "This app needs access to the camera to detect head tilt and mouth positions.",
+        "NSMicrophoneUsageDescription": "This app does not use the microphone."
+      }
     },
     "win": {
       "target": [

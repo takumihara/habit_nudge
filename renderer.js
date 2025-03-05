@@ -393,11 +393,22 @@ async function startCamera() {
     const cameraSelector = document.getElementById("camera-selector");
     const deviceId = cameraSelector.value;
 
+    // First check if we have access to getUserMedia
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      throw new Error(
+        "Media devices API not supported in this browser or context",
+      );
+    }
+
+    information.innerText = "Requesting camera permission...";
+
     const constraints = {
       video: deviceId ? { deviceId: { exact: deviceId } } : true,
+      audio: false,
     };
 
     currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+    information.innerText = "Camera started successfully";
     videoElement.srcObject = currentStream;
 
     // Mirror the video and canvas
@@ -424,7 +435,33 @@ async function startCamera() {
     detectFaces();
   } catch (error) {
     console.error("Error accessing camera:", error);
-    information.innerText = `Error accessing camera: ${error.message}`;
+
+    let errorMessage = "";
+
+    if (
+      error.name === "NotAllowedError" ||
+      error.name === "PermissionDeniedError"
+    ) {
+      errorMessage =
+        "Camera access denied. Please grant camera permissions for this app.";
+      // On macOS Electron apps, provide more detailed instructions
+      if (navigator.userAgent.includes("Electron")) {
+        errorMessage +=
+          " For Electron apps on macOS, you may need to restart the app after granting permissions.";
+      }
+    } else if (error.name === "NotFoundError") {
+      errorMessage = "No camera found. Please connect a camera and try again.";
+    } else if (
+      error.name === "NotReadableError" ||
+      error.name === "AbortError"
+    ) {
+      errorMessage =
+        "Camera is in use by another application. Please close other applications using the camera.";
+    } else {
+      errorMessage = `Error accessing camera: ${error.message}`;
+    }
+
+    information.innerText = errorMessage;
   }
 }
 
