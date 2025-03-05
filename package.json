@@ -21,25 +21,29 @@
   "build": {
     "appId": "com.headtiltdetector.app",
     "productName": "Head Tilt Detector",
+    "icon": "icon.png",
     "mac": {
       "category": "public.app-category.utilities",
       "target": [
         "dmg",
         "zip"
-      ]
+      ],
+      "icon": "icon.png"
     },
     "win": {
       "target": [
         "nsis",
         "portable"
-      ]
+      ],
+      "icon": "icon.png"
     },
     "linux": {
       "target": [
         "AppImage",
         "deb"
       ],
-      "category": "Utility"
+      "category": "Utility",
+      "icon": "icon.png"
     },
     "directories": {
       "buildResources": "build",
