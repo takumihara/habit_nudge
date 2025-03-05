@@ -1,15 +1,56 @@
 {
-  "name": "my-electron-app",
+  "name": "head-tilt-detector",
   "version": "1.0.0",
-  "description": "Hello World!",
+  "description": "Head Tilt Detection Application",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:mac": "electron-builder --mac",
+    "dist:win": "electron-builder --win",
+    "dist:linux": "electron-builder --linux"
   },
   "author": "Jane Doe",
   "license": "MIT",
   "devDependencies": {
-    "electron": "^34.2.0"
+    "electron": "^34.2.0",
+    "electron-builder": "^24.9.1"
+  },
+  "build": {
+    "appId": "com.headtiltdetector.app",
+    "productName": "Head Tilt Detector",
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility"
+    },
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!**/.vscode/*",
+      "!build/*",
+      "!dist/*",
+      "!node_modules/*"
+    ]
   }
 }
