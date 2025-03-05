@@ -1,6 +1,6 @@
-# Head Tilt Detector
+# HabitNudge
 
-An Electron-based desktop application that detects head tilt using computer vision.
+An Electron-based desktop application that helps with habit formation using computer vision.
 
 ## Development
 
@@ -15,7 +15,7 @@ Clone the repository and install dependencies:
 
 ```bash
 git clone <repository-url>
-cd head-tilt-detector
+cd habitnudge
 npm install
 ```
 

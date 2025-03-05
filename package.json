@@ -1,7 +1,7 @@
 {
-  "name": "head-tilt-detector",
+  "name": "habitnudge",
   "version": "1.0.0",
-  "description": "Head Tilt Detection Application",
+  "description": "HabitNudge Application",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -19,8 +19,8 @@
     "electron-builder": "^24.9.1"
   },
   "build": {
-    "appId": "com.headtiltdetector.app",
-    "productName": "Head Tilt Detector",
+    "appId": "com.habitnudge.app",
+    "productName": "HabitNudge",
     "icon": "icon.png",
     "mac": {
       "category": "public.app-category.utilities",
